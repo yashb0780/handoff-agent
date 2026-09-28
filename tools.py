@@ -1,9 +1,11 @@
 from langchain.tools import tool
 
 # Fake Salesforce data (pretend this came from a real CRM)
+# Two different customers both named "Acme". The website tells them apart.
 SALESFORCE = {
     "acme corp": {
         "account": "Acme Corp",
+        "website": "acme.com",
         "industry": "Healthcare",
         "arr": 120000,
         "products": ["Service Desk", "Asset Management"],
@@ -13,7 +15,19 @@ SALESFORCE = {
             {"name": "Mark Lee", "role": "CFO", "type": "Economic buyer"},
         ],
         "rep_notes": "Replacing legacy ticketing tool. Wants go-live before Q1 audit.",
-    }
+    },
+    "acme inc": {
+        "account": "Acme Inc",
+        "website": "tryacme.com",
+        "industry": "Retail",
+        "arr": 45000,
+        "products": ["Service Desk"],
+        "close_date": "2026-09-10",
+        "contacts": [
+            {"name": "Daniel Kim", "role": "Head of IT Ops", "type": "Champion"},
+        ],
+        "rep_notes": "Small IT team. Wants self-serve onboarding, light touch.",
+    },
 }
 
 # Fake Gong call insights (pretend these came from call recordings)
@@ -26,7 +40,16 @@ GONG = {
             "goals": ["Cut ticket response time in half", "Pass Q1 compliance audit"],
             "promises_made": ["SSO setup in week 1", "Data migration help from our team"],
         }
-    ]
+    ],
+    "acme inc": [
+        {
+            "date": "2026-08-28",
+            "title": "Demo call",
+            "pain_points": ["Store managers email IT directly", "No ticket tracking"],
+            "goals": ["One place for all store IT requests"],
+            "promises_made": ["Onboarding videos for store managers"],
+        }
+    ],
 }
 
 
