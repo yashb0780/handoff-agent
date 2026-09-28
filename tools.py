@@ -53,14 +53,56 @@ GONG = {
 }
 
 
-@tool
-def get_salesforce_deal(account_name: str) -> dict:
-    """Look up the closed deal in Salesforce: ARR, products, contacts, and sales rep notes."""
-    return SALESFORCE.get(account_name.lower(), {"error": "Not found in Salesforce"})
+def clean(text: str) -> str:
+    """Tidy up what the CSM typed: 'https://www.Acme.com/' becomes 'acme.com'."""
+    text = text.strip().lower()
+    for prefix in ["https://", "http://", "www."]:
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+    return text.strip("/. ")
+
+
+def find_accounts(query: str) -> list:
+    """Return every account that matches a website or a name."""
+    q = clean(query)
+    # 1. Website: must match the WHOLE domain (so acme.co never matches acme.com)
+    by_website = [key for key, acct in SALESFORCE.items() if acct["website"] == q]
+    if by_website:
+        return by_website
+    # 2. Exact name
+    if q in SALESFORCE:
+        return [q]
+    # 3. First word of the name, e.g. "acme" matches "acme corp" AND "acme inc"
+    return [key for key in SALESFORCE if key.startswith(q + " ")]
+
+
+def matches_or_error(query: str, system: str):
+    """Shared answer for both tools: one match, several, or none."""
+    keys = find_accounts(query)
+    if len(keys) == 0:
+        return None, {"error": f"No account found in {system} for '{query}'"}
+    if len(keys) > 1:
+        options = [
+            {"account": SALESFORCE[k]["account"], "website": SALESFORCE[k]["website"]}
+            for k in keys
+        ]
+        return None, {"multiple_matches": options, "note": "Ask the CSM which one they mean."}
+    return keys[0], None
 
 
 @tool
-def get_gong_calls(account_name: str) -> list:
-    """Look up Gong call insights: pain points, goals, and promises made during the sales process."""
-    return GONG.get(account_name.lower(), [{"error": "No Gong calls found"}])
+def get_salesforce_deal(account: str) -> dict:
+    """Look up the closed deal in Salesforce: ARR, products, contacts, and sales rep notes.
+    'account' can be an account name (e.g. 'Acme Corp') or a website (e.g. 'acme.com'
+    or 'https://www.acme.com'). If the CSM gave a website, pass the website."""
+    key, problem = matches_or_error(account, "Salesforce")
+    return problem if problem else SALESFORCE[key]
 
+
+@tool
+def get_gong_calls(account: str) -> list:
+    """Look up Gong call insights: pain points, goals, and promises made during sales.
+    'account' can be an account name or a website. Pass the same website Salesforce
+    returned, so both tools describe the same customer."""
+    key, problem = matches_or_error(account, "Gong")
+    return [problem] if problem else GONG[key]
